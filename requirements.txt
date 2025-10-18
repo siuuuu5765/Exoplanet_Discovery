@@ -1,0 +1,11 @@
+streamlit
+numpy
+pandas
+matplotlib
+lightkurve
+astropy
+scipy
+openai
+plotly
+sqlalchemy
+requests
