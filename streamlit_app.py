@@ -41,7 +41,7 @@ if "planet_db" not in st.session_state:
 def fetch_tess_data(tic_id):
     """Fetch TESS light curve data for a given TIC ID."""
     try:
-        # 🔑 FIX: Adding cache=False forces a fresh download, bypassing the corrupt cached file.
+        # 🔑 FIX APPLIED HERE: Added 'cache=False' to bypass the corrupt file in the lightkurve cache.
         lc_collection = search_lightcurve(f"TIC {tic_id}", mission="TESS").download_all(cache=False)
         if lc_collection is None:
             return None
@@ -114,13 +114,13 @@ if mode == "Analyze TESS TIC ID":
             if data is not None:
                 st.success("✅ Data fetched successfully!")
                 
-                # PROBLEM CORRECTION: Using Matplotlib for a cleaner, labelled light curve plot
+                # Using Matplotlib for a cleaner, labelled light curve plot
                 fig, ax = plt.subplots(figsize=(10, 4))
                 ax.plot(data["time"], data["flux"], marker='.', linestyle='none', alpha=0.5, markersize=2)
                 ax.set_xlabel("Time (BJD)")
                 ax.set_ylabel("Normalized Flux")
                 ax.set_title(f"Light Curve for TIC {tic_id}")
-                st.pyplot(fig) # Use st.pyplot() to display the Matplotlib figure
+                st.pyplot(fig) 
 
                 st.write("Detecting possible transit events...")
                 metrics = detect_transits(data)
@@ -152,13 +152,13 @@ elif mode == "Upload Light Curve":
     if uploaded_file:
         df = pd.read_csv(uploaded_file)
         
-        # PROBLEM CORRECTION: Using Matplotlib for a cleaner, labelled light curve plot
+        # Using Matplotlib for a cleaner, labelled light curve plot
         fig, ax = plt.subplots(figsize=(10, 4))
         ax.plot(df["time"], df["flux"], marker='.', linestyle='none', alpha=0.5, markersize=2)
         ax.set_xlabel("Time")
         ax.set_ylabel("Flux")
         ax.set_title("Uploaded Light Curve")
-        st.pyplot(fig) # Use st.pyplot() to display the Matplotlib figure
+        st.pyplot(fig) 
         
         metrics = detect_transits(df)
         if metrics:
