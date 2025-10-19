@@ -112,7 +112,14 @@ if mode == "Analyze TESS TIC ID":
 
             if data is not None:
                 st.success("✅ Data fetched successfully!")
-                st.line_chart(data[["time", "flux"]].set_index("time"))
+                
+                # PROBLEM CORRECTION: Using Matplotlib for a cleaner, labelled light curve plot
+                fig, ax = plt.subplots(figsize=(10, 4))
+                ax.plot(data["time"], data["flux"], marker='.', linestyle='none', alpha=0.5, markersize=2)
+                ax.set_xlabel("Time (BJD)")
+                ax.set_ylabel("Normalized Flux")
+                ax.set_title(f"Light Curve for TIC {tic_id}")
+                st.pyplot(fig) # Use st.pyplot() to display the Matplotlib figure
 
                 st.write("Detecting possible transit events...")
                 metrics = detect_transits(data)
@@ -143,7 +150,15 @@ elif mode == "Upload Light Curve":
     uploaded_file = st.file_uploader("Upload a CSV file with columns `time` and `flux`", type="csv")
     if uploaded_file:
         df = pd.read_csv(uploaded_file)
-        st.line_chart(df[["time", "flux"]].set_index("time"))
+        
+        # PROBLEM CORRECTION: Using Matplotlib for a cleaner, labelled light curve plot
+        fig, ax = plt.subplots(figsize=(10, 4))
+        ax.plot(df["time"], df["flux"], marker='.', linestyle='none', alpha=0.5, markersize=2)
+        ax.set_xlabel("Time")
+        ax.set_ylabel("Flux")
+        ax.set_title("Uploaded Light Curve")
+        st.pyplot(fig) # Use st.pyplot() to display the Matplotlib figure
+        
         metrics = detect_transits(df)
         if metrics:
             st.success("Detected possible transit patterns!")
