@@ -22,6 +22,7 @@ st.title("🔭 Exoplanet Discovery Hub")
 st.markdown("### Discover, analyze, and understand planets beyond our solar system — using real NASA TESS data and AI insights.")
 
 # Load your OpenAI key from Streamlit secrets
+# Ensure you have 'OPENAI_API_KEY' set up in your Streamlit secrets file (or environment variables)
 openai.api_key = st.secrets.get("OPENAI_API_KEY", None)
 
 # ===============================================================
@@ -41,7 +42,7 @@ if "planet_db" not in st.session_state:
 def fetch_tess_data(tic_id):
     """Fetch TESS light curve data for a given TIC ID."""
     try:
-        # FIX: Added 'cache=False' to bypass the corrupt file in the lightkurve cache.
+        # FIX APPLIED: Added 'cache=False' to bypass the corrupt file in the lightkurve cache.
         lc_collection = search_lightcurve(f"TIC {tic_id}", mission="TESS").download_all(cache=False)
         if lc_collection is None:
             return None
@@ -54,12 +55,20 @@ def fetch_tess_data(tic_id):
 
 def detect_transits(df):
     """Simple dip detection (mock algorithm for demonstration)."""
+    # Ensure necessary columns exist before proceeding
+    if 'flux' not in df.columns or 'time' not in df.columns:
+        st.error("Uploaded data must contain 'time' and 'flux' columns.")
+        return None
+        
     df["rolling_flux"] = df["flux"].rolling(window=15, center=True).mean()
     df["dip"] = df["flux"] < (df["rolling_flux"].mean() - 2 * df["rolling_flux"].std())
     dips = df[df["dip"]]
     if dips.empty:
         return None
-    depth = (df["flux"].mean() - dips["flux"].mean()) / df["flux"].mean()
+    # Calculate depth relative to the median flux to handle normalization edge cases
+    median_flux = df["flux"].median()
+    dip_mean_flux = dips["flux"].mean()
+    depth = (median_flux - dip_mean_flux) / median_flux if median_flux > 0 else 0
     period_guess = np.mean(np.diff(dips["time"].values)) if len(dips) > 1 else np.nan
     return {"depth": depth, "period": period_guess, "num_dips": len(dips)}
 
@@ -68,13 +77,18 @@ def generate_ai_summary(tic_id, metrics):
     """Use GPT to generate an explanation."""
     if not openai.api_key:
         return "🔒 OpenAI API key missing. Please add it in Streamlit secrets."
+    
+    # Ensure all metric keys are present before formatting the prompt
+    if not all(k in metrics for k in ['depth', 'period', 'num_dips']):
+        return "Error: Incomplete metrics data provided to AI summary function."
+
     prompt = f"""
     You are an astrophysics expert. Explain in simple terms what these values mean for a possible exoplanet:
     - TIC ID: {tic_id}
-    - Transit depth: {metrics['depth']}
-    - Period (days): {metrics['period']}
+    - Transit depth: {metrics['depth']:.5f} (relative flux change)
+    - Period (days): {metrics['period']:.2f}
     - Number of transits detected: {metrics['num_dips']}
-    Mention what kind of planet this could be and whether it might be in the habitable zone.
+    Mention what kind of planet this could be (e.g., Hot Jupiter, Earth-sized) and whether the period suggests it might be in the habitable zone.
     """
     try:
         response = openai.ChatCompletion.create(
@@ -92,8 +106,8 @@ def save_planet_profile(tic_id, metrics, ai_summary):
     st.session_state.planet_db.append({
         "TIC ID": tic_id,
         "Transit Depth": round(metrics["depth"], 5),
-        "Estimated Period (days)": round(metrics["period"], 2) if metrics["period"] else "N/A",
-        "Number of Dips": metrics["num_dips"],
+        "Estimated Period (days)": round(metrics["period"], 2) if metrics.get("period") else "N/A",
+        "Number of Dips": metrics.get("num_dips", 0),
         "AI Summary": ai_summary,
         "Date": datetime.now().strftime("%Y-%m-%d %H:%M")
     })
@@ -121,6 +135,8 @@ if mode == "Analyze TESS TIC ID":
                 ax.set_ylabel("Normalized Flux")
                 ax.set_title(f"Light Curve for TIC {tic_id}")
                 st.pyplot(fig) 
+                # CRITICAL FIX 1: Close the Matplotlib figure immediately to prevent memory leaks/crashes
+                plt.close(fig)
 
                 st.write("Detecting possible transit events...")
                 metrics = detect_transits(data)
@@ -154,13 +170,14 @@ elif mode == "Upload Light Curve":
         
         # Using Matplotlib for a cleaner, labelled light curve plot
         fig, ax = plt.subplots(figsize=(10, 4))
-                ax.plot(data["time"], data["flux"], marker='.', linestyle='none', alpha=0.5, markersize=2)
-                ax.set_xlabel("Time (BJD)")
-                ax.set_ylabel("Normalized Flux")
-                ax.set_title(f"Light Curve for TIC {tic_id}")
-                st.pyplot(fig)
-                # FIX: Close the figure object to free memory and prevent errors on rerun.
-                plt.close(fig)
+        # CRITICAL FIX 2: Corrected plotting variables to use 'df' (the uploaded data)
+        ax.plot(df["time"], df["flux"], marker='.', linestyle='none', alpha=0.5, markersize=2)
+        ax.set_xlabel("Time (Arbitrary Units)")
+        ax.set_ylabel("Flux (Arbitrary Units)")
+        ax.set_title("Uploaded Light Curve Analysis")
+        st.pyplot(fig) 
+        # CRITICAL FIX 1: Close the Matplotlib figure immediately to prevent memory leaks/crashes
+        plt.close(fig)
         
         metrics = detect_transits(df)
         if metrics:
