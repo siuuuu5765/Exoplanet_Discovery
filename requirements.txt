@@ -2,13 +2,12 @@ streamlit
 numpy
 pandas
 matplotlib
-lightkurve
-astropy
-scipy
+# Pinned versions for stability and compatibility
+lightkurve==2.4.1
+astropy==5.3.4
+scipy==1.11.4
+astroquery==0.4.6 # Add astroquery, which is used but not listed!
 openai
 plotly
 sqlalchemy
 requests
-scikit-learn
-joblib
-reportlab
