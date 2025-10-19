@@ -9,3 +9,6 @@ openai
 plotly
 sqlalchemy
 requests
+scikit-learn
+joblib
+reportlab
