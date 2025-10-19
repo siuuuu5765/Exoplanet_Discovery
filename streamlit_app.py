@@ -154,11 +154,13 @@ elif mode == "Upload Light Curve":
         
         # Using Matplotlib for a cleaner, labelled light curve plot
         fig, ax = plt.subplots(figsize=(10, 4))
-        ax.plot(df["time"], df["flux"], marker='.', linestyle='none', alpha=0.5, markersize=2)
-        ax.set_xlabel("Time")
-        ax.set_ylabel("Flux")
-        ax.set_title("Uploaded Light Curve")
-        st.pyplot(fig) 
+                ax.plot(data["time"], data["flux"], marker='.', linestyle='none', alpha=0.5, markersize=2)
+                ax.set_xlabel("Time (BJD)")
+                ax.set_ylabel("Normalized Flux")
+                ax.set_title(f"Light Curve for TIC {tic_id}")
+                st.pyplot(fig)
+                # FIX: Close the figure object to free memory and prevent errors on rerun.
+                plt.close(fig)
         
         metrics = detect_transits(df)
         if metrics:
