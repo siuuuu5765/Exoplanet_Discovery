@@ -41,7 +41,8 @@ if "planet_db" not in st.session_state:
 def fetch_tess_data(tic_id):
     """Fetch TESS light curve data for a given TIC ID."""
     try:
-        lc_collection = search_lightcurve(f"TIC {tic_id}", mission="TESS").download_all()
+        # CORRECTION: Added 'cache=False' to prevent issues with corrupted cached files.
+        lc_collection = search_lightcurve(f"TIC {tic_id}", mission="TESS").download_all(cache=False)
         if lc_collection is None:
             return None
         lc = lc_collection.stitch().remove_nans().normalize()
